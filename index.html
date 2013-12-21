@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html data-ng-app="app">
+<head>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.0/angular.min.js"></script>
+	<script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
+	<script src="/angular_app.js"></script>
+</head>
+
+<body data-ng-controller="mainCtrl">
+	<form>
+		<div>
+			Enter the number of foods you're inputting:<br>
+			<input type="text" ng-model="foodMeta.number"/><br>
+		</div>
+		<br>
+		<div>
+			Enter the food macros, 1 food per line, with the following format:<br>
+			'calories' 'protein' 'fats' 'carbs'<br>
+			<textarea ng-model="foodMeta.macrosString"></textarea><br>
+		</div>
+		<br>
+		<div>
+			Enter your desired macros in 1 line, with the following format:<br>
+			'calories' 'protein' 'fats' 'carbs'<br>
+			<textarea ng-model="foodMeta.desiredMacrosString">Enter desired macros</textarea><br>
+		</div>
+		<button ng-click="sendData(foodMeta.number, foodMeta.macrosString, foodMeta.desiredMacrosString)">Get Proportions</button>
+	</form>
+
+	<button ng-click="sendDummyData()">TestSend</button>
+	<button ng-model="foods" ng-click="objToArr(foods)">ToArray</button>
+
+	<br>
+	Results:
+	<div ng-model="results">
+		<div ng-repeat="result in results">{{result}}</div><br>
+	</div>
+
+	<div ng-model="item">{{item}}</div>
+	<div ng-click="sendData()">click me</div>
+	<div ng-click="doSomething()">alert!</div>
+</body>
+
+</html>
