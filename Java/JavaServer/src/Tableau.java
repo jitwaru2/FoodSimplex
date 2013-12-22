@@ -1,3 +1,9 @@
+
+/**
+ * A Tableau is a special data structure used to hold and manipulate data during simplex operations.
+ * @author josh
+ *
+ */
 public class Tableau {
 	Matrix OFC; 			//objective function coefficients
 	Matrix BVC; 			//index of basic variables column within OFC
@@ -25,11 +31,24 @@ public class Tableau {
 		tabHelper(seed, empty, false);
 	}
 	
+	/**
+	 * 
+	 * @param seed The inputted Tableau to copy, if desired
+	 * @param OFC The objective function coefficients, in Matrix format
+	 * @param empty True if only the format of the seed Tableau is desired; false for a full copy
+	 * @param removeArtificials True if wants to forcibly remove artificial variables from the inputted seed tab to be copied
+	 */
 	public Tableau(Tableau seed, Matrix OFC, boolean empty, boolean removeArtificials){
 		this.OFC = new Matrix(copyDoubleArray(OFC.matrix));
 		tabHelper(seed, empty, removeArtificials);
 	}
 	
+	/**
+	 * This is basically to prevent code duplication
+	 * @param seed
+	 * @param empty
+	 * @param removeArtificials
+	 */
 	private void tabHelper(Tableau seed, boolean empty, boolean removeArtificials){
 		if(removeArtificials==true){
 			auxVars = seed.numCons;
@@ -74,13 +93,16 @@ public class Tableau {
 	 * Creates a Tableau preinitialized with the OFC, constraints, and RHS
 	 * @param solns
 	 */
-	public Tableau(Matrix[][] solns){
+	public Tableau(Matrix[][] solns, Matrix objMax) throws Exception {
 		//we need these original vectors intact and unchanged at the end, so make copies to operate on
 		Matrix vectorX = solns[0][0];
 		Matrix[] nullspace = solns[1];
 		
 		//copies of x vector and nullspace vectors
 		numCons= vectorX.rows - nullspace.length; //number of constraint equations involving ALL nullspace coefficients
+		if(numCons==0){
+			throw new Exception();
+		}
 		
 		double[] rhsd = new double[numCons];
 		for(int i=0; i<rhsd.length; i++){
@@ -136,13 +158,15 @@ public class Tableau {
 		OFC = new Matrix(new double[totalVars]);
 		for(int i=0; i<nullspace.length; i++){
 			for(int j=0; j<nullspace[i].rows; j++){
-				OFC.matrix[i][0] += nullspace[i].matrix[j][0];
-				System.out.println(nullspace[i].matrix[j][0]);
+				if(objMax.matrix[j][0]==1){
+					OFC.matrix[i][0] += nullspace[i].matrix[j][0];
+					System.out.println(nullspace[i].matrix[j][0]);
+				}
 			}
 		}
 		
 		
-		System.out.println("\n");
+		System.out.println("passed building objective function\n");
 		
 		
 		/* Write full equations into constraints table, including auxiliary vars
@@ -150,6 +174,8 @@ public class Tableau {
 		 * x1 x2 ... xn c1 c2 ... cn a1 a2 ...am
 		 * <basic vars> <slack/surplus vars> <artificial vars>
 		 * where |x|=|c|=/=|a| */
+		System.out.println("numCons:" + numCons);
+		System.out.println("totalVars: " + totalVars);
 		constraints = new Matrix(new double[numCons][totalVars]);
 		
 		//fill constraints table a row at a time
@@ -178,6 +204,11 @@ public class Tableau {
 		BVC = new Matrix(new double[numCons]);
 	}
 	
+	/**
+	 * Helper method to copy a 2 dimensional double array
+	 * @param mat Inputted 2 dimensional double array
+	 * @return Copy of the 2 dimensional double array
+	 */
 	public static double[][] copyDoubleArray(double[][] mat){
 		double[][] matCopy = new double[mat.length][mat[0].length];
 		for(int i=0; i<mat.length; i++){
@@ -188,6 +219,13 @@ public class Tableau {
 		return matCopy;
 	}
 	
+	/**
+	 * Helper method to copy a vertical slice of a 2 dimensional double array
+	 * @param mat Inputted 2 dimensional double array
+	 * @param colStart Column to start copying from
+	 * @param colEnd Column to stop copying at
+	 * @return Copied slice of the inputted 2 dimensional double array
+	 */
 	public static double[][] copyDoubleArray(double[][] mat, int colStart, int colEnd){
 		double[][] matCopy = new double[mat.length][colEnd-colStart];
 		for(int i=0; i<mat.length; i++){
@@ -198,6 +236,27 @@ public class Tableau {
 		return matCopy;
 	}
 	
+	/**
+	 * Checks to see if this Tableau currently has artificial variables in its BVC
+	 * @return True if this Tableau currently has artificial variables in its BVC, false otherwise
+	 */
+	public boolean solnHasArtificials(){
+		if(hasArtificials==true){
+			for(int i=0; i<BVC.rows; i++){
+				if(BVC.matrix[i][0]>=artIndex){
+					System.out.println("artificial variable is element " + i + ": "+ BVC.matrix[i][0]);
+					System.out.println("artindex is: " + artIndex);
+					return true;
+				}
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Returns a String format of the Tableau
+	 */
 	public String toString(){
 		String t = "__|";
 		for(int i=0; i<OFC.rows; i++){

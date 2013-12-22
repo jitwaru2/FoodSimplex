@@ -1,6 +1,9 @@
 import java.util.*;
 
 /**
+ * **This class was the original plan, until I realized that I needed to use the simplex method on top of the system of equations. 
+ * **I don't use the knapsack or rodCutting methods in this project, but they do work, and they're pretty cool.
+ * 
  * Calculations:
  * - Given a budget, maximize specified macro: (rod cutting problem, dynamic programming: optimal substructure)
  * - Maximize macros for a knapsack: continuous (knapsack problem, dynamic programming: greedy choice)

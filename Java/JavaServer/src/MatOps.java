@@ -3,11 +3,21 @@ import java.util.ArrayList;
 public class MatOps {
 	
 	/**
+	 * The 2 phase simplex method runs in 2 phases: Phase 1, which provides basic feasible starting solutions for the simplex maximization method, and Phase 2, which is the maximization.
+	 * This implementation is specific to the Food app, as it directly requires the solutions to a system of equations.
+	 * This method runs in worst case exponential time. There is no known polynomial time or heuristic algorithm to alleviate the running time.
 	 * 
-	 * @param solns
+	 * @param solns The solution vector x and nullspace
+	 * @param objMax The coefficients of the nullspace members to maximize
 	 */
-	public static Tableau TwoPhaseSimplex(Matrix[][] solns){
-		Tableau tab = new Tableau(solns);
+	public static Tableau TwoPhaseSimplex(Matrix[][] solns, Matrix objMax){
+		Tableau tab;
+		try{
+			tab = new Tableau(solns, objMax);
+		} catch (Exception e){
+			System.out.println("Tab creation failed");
+			return null;
+		}
 		System.out.println("Initial tab:");
 		System.out.println(tab.toString());
 		
@@ -17,14 +27,24 @@ public class MatOps {
 			tab = phase1(tab);
 		}
 		
+		if(tab==null){
+			return null;
+		}
+		
 		System.out.println("Beginning phase2:");
 		System.out.println("\n\n\n\n**********\n*********\n***********\n**********\n********");
 		/* Phase 2 is just the usual simplex maximization */
-		tab = simplexMax(tab, false);
+		tab = simplexMax(tab, !tab.hasArtificials);
 		
 		return tab;
 	}
 	
+	/**
+	 * Phase 1 of the 2 phase simplex method attempts to remove artificial variables from an objective function to provide basic feasible starting solutions, which is a prerequisite
+	 * for the simplex maximization method.
+	 * @param seedTab Preconstructed tab containing the default constraining equations and objective coefficient variables
+	 * @return A new Tableau with basic feasible starting solutions, if they exist; returns null, otherwise.
+	 */
 	public static Tableau phase1(Tableau seedTab){
 		/* Initial iteration:
 		 * The first iteration of simplex initializes the first tab as a seed for every successive iteration of the simplex
@@ -41,14 +61,29 @@ public class MatOps {
 		System.out.println("Phase 1: tab with new objCoefficients:");
 		System.out.println(seedTab.toString());
 		
-		Tableau newSeed = new Tableau(simplexMax(seedTab, true), originalOFC, false, true);
+		Tableau tab = simplexMax(seedTab, true);
+		
+		if(tab==null){
+			System.out.println("Phase 1: failed to provide basic feasilble starting solutions");
+			return null;
+		}
+		
+		Tableau newSeed = new Tableau(tab, originalOFC, false, true);
 		System.out.println("Phase 1: tab after end of phase 1:");
 		System.out.println(newSeed.toString());
+		System.out.println("$$$ Tab has artificial variables: " + newSeed.hasArtificials);
 		
 		return newSeed;
 		
 	}
 	
+	/**
+	 * This is a simplex maximization method implementation. Briefly, it maximizes an objective function value, given constraining equations.
+	 * The worst case complexity is exponential time -- there is no known polynomial time implementation.
+	 * @param seedTab
+	 * @param setBVC
+	 * @return
+	 */
 	public static Tableau simplexMax(Tableau seedTab, boolean setBVC){
 		//Find scattered identity matrix in constraints to set BVC
 		/* Idea is: instead of brute force scanning through the constraints, notice: the slack/surplus variables will form an
@@ -57,6 +92,9 @@ public class MatOps {
 		if(setBVC==true){
 			int curRow = 0;
 			int artCounter = 0;
+			System.out.println("ADDING BVC");
+			System.out.println("realVars: " + seedTab.realVars);
+			System.out.println("numCons: " + seedTab.numCons);
 			for(int i=seedTab.realVars; i<seedTab.realVars+seedTab.numCons; i++){
 				if(seedTab.constraints.matrix[curRow][i]==1){
 					seedTab.BVC.matrix[curRow][0] = i; //column index of OFC
@@ -69,7 +107,7 @@ public class MatOps {
 			}
 		}
 		
-		//TEST: pass!
+		//TEST: PASS! make sure BVC was correctly added
 		System.out.println("After adding BVC:");
 		System.out.println(seedTab.toString());
 		
@@ -90,11 +128,6 @@ public class MatOps {
 				System.out.println("lawls");
 				pivotCol= i;
 			} 
-			
-//			else if(seedTab.cjzj.matrix[i][0]==seedTab.cjzj.matrix[pivotCol][0] && pivotCol!=i){
-//				System.out.println("ERROR: MULTIPLE SIMILAR CJ-ZJ VALUES; ALTERNATE OPTIMUM; EXITING");
-//				System.exit(1);
-//			}
 		}
 		//Calculate RHS for cj-zj, which is the objective function value
 		for(int i=0; i<seedTab.BVC.rows; i++){
@@ -106,8 +139,6 @@ public class MatOps {
 	
 		System.out.println("After calculating cj-zj:");
 		System.out.println(seedTab.toString());
-
-		
 		System.out.println("pivot column:" + pivotCol);
 		
 		//Compute thetas with RHS and pivot column and keep track of smallest theta
@@ -117,7 +148,7 @@ public class MatOps {
 			//calculate theta
 			seedTab.thetas.matrix[i][0] = seedTab.RHS.matrix[i][0]/seedTab.constraints.matrix[i][pivotCol];
 			
-			//keep track of smallest
+			//keep track of smallest theta
 			if(seedTab.thetas.matrix[i][0]<seedTab.thetas.matrix[pivotRow][0] && seedTab.thetas.matrix[i][0]>0){
 				pivotRow = i;
 				duplicate = false;
@@ -126,23 +157,35 @@ public class MatOps {
 				duplicate = true;
 			}
 		}
-		if(seedTab.thetas.matrix[pivotRow][0]<=0){
-			System.out.println("No viable thetas; objective function value cannot increase further. Exiting");
-			System.exit(1);
+		//Check feasibility of theta values; thetas are useless if non-positive, infinite, or NaN
+		if(seedTab.thetas.matrix[pivotRow][0]<=0 || Double.isInfinite(seedTab.thetas.matrix[pivotRow][0]) || Double.isNaN(seedTab.thetas.matrix[pivotRow][0])){
+			if(seedTab.solnHasArtificials()){
+				System.out.println("#1Artificial variables detected in final solution; no feasible solution exists");
+				return null;
+			}
+			
+			System.out.println("No viable thetas; objective function value cannot increase further. Exiting with current solution.");
+			return seedTab;
 		}
+		//If there are multiple thetas, then an alternate optimum is present; return the current solution
 		if(duplicate==true){
+			if(seedTab.solnHasArtificials()){
+				System.out.println("#2Artificial variables detected in final solution; no feasible solution exists");
+				return null;
+			}
 			System.out.println("Multiple lowest theta values; alternate optimum detected. Exiting with current solution.");
-			System.exit(1);
+			return seedTab;
 		}
 		
 		
 		System.out.println("After computing thetas:");
 		System.out.println(seedTab.toString());
 		System.out.println("pivot element: " + seedTab.constraints.matrix[pivotRow][pivotCol]);
-		double pivotElem = seedTab.constraints.matrix[pivotRow][pivotCol];
-
 		
-		//if the largest cjzj value is <=0, then simplex is finished
+		
+		double pivotElem = seedTab.constraints.matrix[pivotRow][pivotCol];
+		
+		//If, by this point, the largest cjzj value is <=0, then the simplex is finished
 		if(apprxZeroOne(seedTab.cjzj.matrix[pivotCol][0])<=0.0){
 			System.out.println("SIMPLEX IS FINISHED! Objective function maximized with:");
 			for(int i=0; i<seedTab.BVC.rows; i++){
@@ -151,17 +194,14 @@ public class MatOps {
 			System.out.println("objective function value: " + seedTab.objVal);
 			
 			//check if final solution contains artificial variables
-			for(int i=0; i<seedTab.BVC.rows; i++){
-				if(seedTab.BVC.matrix[i][0]>=seedTab.artIndex){
-					System.out.println("Artificial variables detected in final solution; no feasible solution exists");
-					System.exit(1);
-				}
+			if(seedTab.solnHasArtificials()){
+				System.out.println("#3Artificial variables detected in final solution; no feasible solution exists");
+				return null;
 			}
 			
 			return seedTab;
 		}
 		
-//checkpoint: PASS
 		
 		/*
 		 * Initial tab creation/calculation is complete. The N iterations of simplex can now proceed with the initial tab as a seed
@@ -191,7 +231,6 @@ public class MatOps {
 			System.out.println("Added divided pivot row to curTab:");
 			System.out.println(curTab.toString());
 
-//checkpoint: PASS
 
 			//in new tab, set identity 1's
 			for(int i=0; i<curTab.BVC.rows; i++){
@@ -284,14 +323,11 @@ public class MatOps {
 					System.out.println(multiplier);
 				}
 			}
+			
 			System.out.println("God, I hope this works... tab after row subtractions...");
 			System.out.println(curTab.toString());
 			
-			
-			/*************************************/
-			
-			
-			//calculate cj-zj and keep track of largest one
+			//calculate cj-zj and keep track of largest one, and subsequently get the pivot column
 			pivotCol=0;
 			for(int i=0; i<curTab.constraints.columns; i++){
 				double zj=0;
@@ -303,15 +339,10 @@ public class MatOps {
 				
 				curTab.cjzj.matrix[i][0] = curTab.OFC.matrix[i][0] - zj;
 				
+				//Get the pivot column
 				if(curTab.cjzj.matrix[i][0]>curTab.cjzj.matrix[pivotCol][0]){
-					System.out.println("lawls");
 					pivotCol= i;
 				}
-				//the repeats of the largest must be checked after the largest is found
-//				else if(curTab.cjzj.matrix[i][0]==curTab.cjzj.matrix[pivotCol][0] && pivotCol!=i){
-//					System.out.println("ERROR: MULTIPLE SIMILAR CJ-ZJ VALUES; ALTERNATE OPTIMUM; EXITING");
-//					System.exit(1);
-//				}
 			}
 			
 			System.out.println("after calculating cj-zj for curTab:");
@@ -327,7 +358,7 @@ public class MatOps {
 			System.out.println("Objective function value:");
 			System.out.println(curTab.objVal);
 			
-			//if the largest cjzj value is <=0, then simplex is finished
+			//if the largest cjzj value is <=0, then the simplex is finished
 			if(apprxZeroOne(curTab.cjzj.matrix[pivotCol][0])<=0.0){
 				System.out.println("SIMPLEX IS FINISHED! Objective function maximized with:");
 				for(int i=0; i<curTab.BVC.rows; i++){
@@ -335,12 +366,10 @@ public class MatOps {
 				}
 				System.out.println("objective function value: " + curTab.objVal);
 				
-				//check if final solution contains artificial variables
-				for(int i=0; i<curTab.BVC.rows; i++){
-					if(curTab.BVC.matrix[i][0]>=curTab.artIndex){
-						System.out.println("Artificial variables detected in final solution; no feasible solution exists");
-						System.exit(1);
-					}
+				//check if final solution contains artificial variables, in which case, there is no feasible solution
+				if(curTab.solnHasArtificials()){
+					System.out.println("#4Artificial variables detected in final solution; no feasible solution exists");
+					return null;
 				}
 				isMaximized = true;
 				break;
@@ -364,13 +393,22 @@ public class MatOps {
 					duplicate = true;
 				}
 			}
-			if(curTab.thetas.matrix[pivotRow][0]<=0){
-				System.out.println("No viable thetas; objective function value cannot increase further. Exiting");
-				System.exit(1);
+			//check feasibility of thetas
+			if(curTab.thetas.matrix[pivotRow][0]<=0 || Double.isInfinite(curTab.thetas.matrix[pivotRow][0]) || Double.isNaN(curTab.thetas.matrix[pivotRow][0]) ){
+				if(curTab.solnHasArtificials()){
+					System.out.println("#5Artificial variables detected in final solution; no feasible solution exists");
+					return null;
+				}
+				System.out.println("No viable thetas; objective function value cannot increase further. Exiting with current solution.");
+				return curTab;
 			}
 			if(duplicate==true){
+				if(curTab.solnHasArtificials()){
+					System.out.println("#6Artificial variables detected in final solution; no feasible solution exists");
+					return null;
+				}
 				System.out.println("Multiple lowest theta values; alternate optimum detected. Exiting with current solution.");
-				System.exit(1);
+				return curTab;
 			}
 			
 			
@@ -384,6 +422,12 @@ public class MatOps {
 		
 	}
 	
+	/**
+	 * Because the simplex method is sensitive to numerical accuracy, this method defines an epsilon by which numbers can be considered 0 or 1.
+	 * If the number is within the epsilon range (10^-13) of 0, then it is rounded to a perfect 0.0, and likewise for 1. Otherwise, the inputted value is returned.
+	 * @param i The value to approximate as 0 or 1
+	 * @return The approximated value (1, 0, or simply the inputted value)
+	 */
 	private static double apprxZeroOne(double i){
 		double epsilon = 0.0000000000001;
 		if(i>=0.0 && i<=epsilon){
@@ -393,6 +437,12 @@ public class MatOps {
 		} else return i;
 	}
 	
+	/**
+	 * Helper method that copies a double array. This is mainly used to copy Matrix objects without having to implement the Cloneable interface.
+	 * This method must copy over all n^2 entries in the array, so it runs in O(n^2).
+	 * @param mat 2 dimensional array to copy
+	 * @return A copy of the inputted 2 dimensional array
+	 */
 	public static double[][] copyDoubleArray(double[][] mat){
 		double[][] matCopy = new double[mat.length][mat[0].length];
 		for(int i=0; i<mat.length; i++){
@@ -409,13 +459,17 @@ public class MatOps {
 	 * 2. conversion of A to reduced row echelon form
 	 * 3. back substitution to yield a particular x with the nullspace of A
 	 * 
+	 * Runs in O(n^3) due to RREF
+	 * 
 	 * @param A The left hand side Matrix A in Ax=b
 	 * @param b The right hand side vector b in Ax=b
 	 * @return A Matrix[][] whose first element is an array only containing the single Matrix (or vector, a 1 column Matrix) x that solves Ax=b, and whose second element is an array of special solutions that constitute the nullspace of A
 	 * */
 	public static Matrix[][] solveSystem(Matrix A, Matrix b){
+		Matrix Ac = new Matrix(copyDoubleArray(A.matrix));
+		Matrix bc = new Matrix(copyDoubleArray(b.matrix));
 		//forward elimination
-		Matrix[] r = forwardEliminate(A, b);
+		Matrix[] r = forwardEliminate(Ac, bc);
 
 		//convert to row reduced echelon form
 		r = RREF(r[0], r[1]);
@@ -424,10 +478,67 @@ public class MatOps {
 		/* solutions[0] contains a single array which has the particular x solution, and solutions[1] contains an array of special 
 		 * solutions which constitute the nullspace of A  */
 		Matrix[][] solutions = findX(r[0], r[1]);
-		
-		return solutions;
+		if(solutions!=null){
+			return new Matrix[][] {solutions[0], solutions[1], {A}, {b}};
+		} else {
+			return null;
+		}
 	}
 	
+	/**
+	 * Projects the vector b onto the column space of A to yield a new system of equations, and solves for x-hat using the usual solveSystem method
+	 * Runs in O(n^3) time due to multiplying by the transpose of A and solving a general system of equations.
+	 * @param Ac Matrix A
+	 * @param bc Matrix b
+	 * @return A double array of Matrices, where each element is: the solution vector, the nullspace, the A matrix, the right-hand-side b vector. Returns null if there is no solution.
+	 * */
+	public static Matrix[][] leastSquaresApproximation(Matrix Ac, Matrix bc){
+		Matrix A = new Matrix(copyDoubleArray(Ac.matrix));
+		Matrix b = new Matrix(copyDoubleArray(bc.matrix));
+		
+		System.out.println("Here is the matrix A (the t matrix):");
+		System.out.println(A.toString());
+		System.out.println("Here is the right hand side vector b:");
+		System.out.println(b.toString());
+
+		/* Generate A(transpose)*A */
+		Matrix ATrans = generateTranspose(A);
+		System.out.println("Here is A(transpose):");
+		System.out.println(ATrans.toString());
+		
+		/* Generate A(transpose)*A */
+		Matrix ATransA = multiply(ATrans, A);
+//		Matrix ATransA = multiplyByTranspose(A);
+		System.out.println("Here is A(transpose)*A:");
+		System.out.println(ATransA.toString());
+		
+		/* Generate A(transpose)*b */
+		Matrix ATransB = multiply(ATrans, b);
+		System.out.println("Here is A(transpose)*b");
+		System.out.println(ATransB.toString());
+
+		/* Solve for x-hat in A(transpose)A*xHat = A(transpose)b
+		 * Returns a 2 dimensional array. The first element is an array containing the particular x solution; in this case, xHat. */
+		Matrix[][] solns = solveSystem(ATransA, ATransB);
+		
+		if(solns!=null){
+			return new Matrix[][] {solns[0], solns[1], {ATransA}, {ATransB}};
+		} else {
+			return null;
+		}
+	}
+	
+	public static Matrix generateTranspose(Matrix A){
+		//a[i][j] = a[j][i];
+		Matrix trans = new Matrix(A.columns, A.rows);
+		for(int i=0; i<A.rows; i++){
+			for(int j=0; j<A.columns; j++){
+				trans.matrix[j][i] = A.matrix[i][j];
+			}
+		}
+		
+		return trans;
+	}
 	
 	
 	/**

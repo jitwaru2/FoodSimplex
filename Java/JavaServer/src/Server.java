@@ -8,7 +8,11 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Scanner;
 
-
+/**
+ * Backend Java server, designed specifically to communicate with Node.js via NodeProtocol and Protocol
+ * @author josh
+ *
+ */
 public class Server {
 	public static void main(String[] args){
 		ServerSocket server;
@@ -16,7 +20,7 @@ public class Server {
 		InputStream input;
 		
 		try {
-			server = new ServerSocket(8007);
+			server = new ServerSocket(8013);
 			client = server.accept();
 			System.out.println("Client accepted");
 			
@@ -56,14 +60,17 @@ public class Server {
 			    System.out.println(msg);
 			    
 			    /* Figure out what to do with data */
-		    	int type = Protocol.beginSystem;
+		    	int type = np.getMsgType(msg);
 		    	switch(type){
-		    		/* 1. Convert frontend input into matrices
-		    		 * 2. Solve system of equations in matrices
-		    		 * 3. Run simplex on solution vector and nullspace vectors to determine nullspace coefficients
-		    		 * 4. Solve the new system of equations (by arithmetic) to get a single vector
-		    		 * 5. Return the resulting vector to Node.js */
+		    		/* 1. 	Convert frontend input into matrices
+		    		 * 2. 	Solve system of equations in matrices
+		    		 * 2.1 	If there is no solution, project b onto the column space of A, and perform least squares approximation
+		    		 * 3. 	Run simplex on solution vector and nullspace vectors to determine nullspace coefficients
+		    		 * 4. 	Solve the new system of equations (by arithmetic) to get a single vector
+		    		 * 5. 	Return the resulting vector to Node.js */
 		    		case(Protocol.beginSystem): {
+		    			System.out.println("Protocol matched as: beginSystem");
+		    			/* Extract matrices A, b, and objMax from user input */
 		    			Matrix[] matrices = np.extractMatrices(msg);
 		    			
 		    			System.out.println("Here are the matrices from the client:");
@@ -72,7 +79,37 @@ public class Server {
 		    				System.out.println(m.toString());
 		    			}
 		    			
+		    			/* Solve system of equations. */
 		    			Matrix[][] solns = MatOps.solveSystem(matrices[0], matrices[1]);
+		    			
+		    			
+		    			/* If there is no solution, try to solve for the projection */
+		    			boolean leastSquares = false;
+		    			boolean simplex = false;
+		    			if(solns==null){
+		    				System.out.println("Solutions are null -- attempting a least squares approximation.");
+		    				solns = MatOps.leastSquaresApproximation(matrices[0], matrices[1]);
+		    				
+		    				leastSquares = true;
+		    				
+		    				/* If least squares approximation doesn't produce an answer, then there is no solution */
+		    				if(solns==null){
+		    					System.out.println("Least squares solutions are null");
+		    					String s = np.getOutput(Protocol.noSolution, null, null, leastSquares, simplex);
+				    			out.write(s);
+			    				break;
+		    				}
+		    			}
+		    			
+		    			System.out.println("@@@@@ CHECKPOINT 1:");
+		    			int w=0;
+		    			for(Matrix[] mm : solns){
+		    				for(Matrix m : mm){
+		    					System.out.println("solns " + w++);
+		    					System.out.println(m.toString());
+		    				}
+		    			}
+		    			
 		    			System.out.println("Solution vector:");
 		    			System.out.println(solns[0][0].toString());
 		    			System.out.println("Nullspace vectors:");
@@ -80,7 +117,48 @@ public class Server {
 		    				System.out.println(m.toString());
 		    			}
 		    			
-		    			Tableau tab = MatOps.TwoPhaseSimplex(solns);
+		    			/* If the nullspace is 0 vector, then simplex won't work --> if solution vector x is positive, then return x */
+		    			if(solns[1].length==1 && Matrix.isZeroVector(solns[1][0])){
+		    				if(Matrix.isNonnegative(solns[0][0])){
+		    					System.out.println("Zero nullspace and non-negative solution vector x:");
+		    					Matrix lsb = null;
+		    					if(leastSquares==true){
+		    						lsb = solns[3][0];
+		    					}
+				    			String s = np.getOutput(Protocol.solution, solns[0][0], lsb, leastSquares, simplex);
+		    					out.write(s);
+		    					break;
+		    				}
+		    			}
+		    			
+		    			
+		    			int q=0;
+		    			System.out.println("BEFORE SIMPLEX MATRICES!");
+		    			for(Matrix[] mm : solns){
+		    				for(Matrix m : mm){
+		    					System.out.println("solns " + q++);
+		    					System.out.println(m.toString());
+		    				}
+		    			}
+		    			
+		    			/* Run simplex on matrices to get solution tab */
+		    			Tableau tab = MatOps.TwoPhaseSimplex(solns, matrices[2]);
+		    			
+		    			/* If there is no solution tab, then there is no solution */
+		    			if(tab==null){
+		    				System.out.println("No solution tab; dead solution");
+		    				Matrix lsb = null;
+		    				if(leastSquares==true){
+		    					lsb = solns[3][0];
+		    				}
+			    			String s = np.getOutput(Protocol.deadSolution, solns[0][0], lsb, leastSquares, simplex);
+	    					out.write(s);
+	    					break;
+		    			} else {
+		    				simplex = true;
+		    			}
+		    			
+		    			/* Extract BVC to matrix */
 		    			double[] coeffs = new double[solns[1].length+1];
 		    			coeffs[coeffs.length-1] = 1;
 		    			for(int i=0; i<tab.BVC.rows; i++){
@@ -88,17 +166,9 @@ public class Server {
 		    					coeffs[(int)tab.BVC.matrix[i][0]] = tab.RHS.matrix[i][0];
 		    				}
 		    			}
-		    			
-		    			System.out.println("Modified Solution vector:");
-		    			System.out.println(solns[0][0].toString());
-		    			System.out.println("Modified Nullspace vectors:");
-		    			for(Matrix m : solns[1]){
-		    				System.out.println(m.toString());
-		    			}
-		    			
-		    			
 		    			Matrix coefficients = new Matrix(coeffs);
 		    			
+		    			/* Plug in coefficients for nullspace vectors and add all solution vectors to get new vector x */
 		    			Matrix[] addends = new Matrix[solns[1].length+1];
 		    			addends[addends.length-1] = solns[0][0];
 		    			for(int i=0; i<solns[1].length; i++){
@@ -116,25 +186,31 @@ public class Server {
 		    			
 		    			
 		    			Matrix x = MatOps.addVectors(addends, coefficients);
-		    			String s = "";
-		    			for(int i=0; i<x.rows; i++){
-		    				s += x.matrix[i][0]+" ";
+		    			
+		    			/* Send back resulting vector */
+		    			Matrix lsb = null;
+		    			if(leastSquares==true){
+		    				lsb = solns[3][0];
 		    			}
-		    			s+="\n";
+		    			
+		    			int i=0;
+		    			for(Matrix[] mm : solns){
+		    				for(Matrix m : mm){
+		    					System.out.println("solns " + i++);
+		    					System.out.println(m.toString());
+		    				}
+		    			}
+		    			
+		    			System.out.println(lsb.toString());
+		    			
+		    			System.out.println("Good solution");
+		    			String s = np.getOutput(Protocol.solution, x, lsb, leastSquares, simplex);
 		    			System.out.println(x.toString());
 		    			
 		    			out.write(s);
 		    		}
 		    	}
 			    
-			    /* Convert JSON data to Java data */
-			    
-			    /* Perform computations */
-			    
-			    /* Convert to JSON format */
-			    
-			    /* Send JSON data to Node.js */
-
 			    
 			    if(out.checkError()){
 			    	System.out.println("Error detected; closing.");

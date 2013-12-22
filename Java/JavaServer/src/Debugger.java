@@ -1,8 +1,79 @@
+import java.io.File;
 import java.util.Scanner;
 
-
+/**
+ * Used to debug some problems
+ * @author josh
+ *
+ */
 public class Debugger {
 	public static void main(String[] args){
+		Matrix[] ms = getMatricesFromFile();
+		System.out.println("Input matrices:");
+		for(Matrix m : ms){
+			System.out.println(m.toString());
+		}
+		
+		Matrix[][] results = solveSystem(ms);
+		
+		double[] obj = new double[results[0][0].rows];
+		for(int i=0; i<obj.length; i++){
+			obj[i] = 1;
+		}
+		Matrix objMax = new Matrix(obj);
+		System.out.println("objMax:");
+		System.out.println(objMax.toString());
+		
+		MatOps.TwoPhaseSimplex(results, objMax);
+		
+	}
+	
+	public static Matrix[] getMatricesFromFile(){
+		Matrix A = null;
+		Matrix b = null;
+		
+		/* Read matrices from file */
+		try {
+			File inFile = new File("matrices.txt");
+			Scanner scan = new Scanner(inFile);
+			int rows = scan.nextInt();
+			int columns = scan.nextInt();
+			double mat[][] = new double[rows][columns];
+			for(int i=0; i<rows; i++){
+				for(int j=0; j<columns; j++){
+					mat[i][j] = scan.nextDouble();
+				}
+			}
+			A = new Matrix(mat);
+			
+			double[] beta = new double[rows];
+			for(int i=0; i<rows; i++){
+				beta[i] = scan.nextDouble();
+			}
+			b = new Matrix(beta);
+			
+		} catch (Exception e){
+			System.out.println(e.getMessage());
+		}
+		
+		return new Matrix[] {A, b};
+	}
+	
+	public static Matrix[][] solveSystem(Matrix[] ms){
+		Matrix[][] results = MatOps.solveSystem(ms[0], ms[1]);
+		
+		System.out.println("Vector x:");
+		System.out.println(results[0][0].toString());
+		
+		System.out.println("Nullspace vectors:");
+		for(int i=0; i<results[1].length; i++){
+			System.out.println(results[1][i].toString());
+		}
+		
+		return results;
+	}
+	
+	public static void test1(){
 		String data = "111\n"
 				+ "5\n"
 				+ "2\n"
