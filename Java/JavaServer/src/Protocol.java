@@ -19,7 +19,7 @@ public class Protocol {
 	final static String nullSolutionMsg = "[No solution vector]";
 	final static String deadSolutionMsg = "This isn't ideal, but this is it...(note, negatives mean that you must 'excrete' food...)";
 	final static String noFoodComboMsg = "There is no combination of foods that you can eat to achieve the specific macro set!";
-	final static String leastSquaresMsg = "Couldn't find a solution to your macro set, but I found a solution to the following macro set, which is close to yours:";
+	final static String leastSquaresMsg = "Couldn't find a solution to your macro set, but I tried to a solution as close to ideal as possible:";
 	final static String simplexMsg = "Solution optimized using simplex method";
 	final static String noSimplexMsg = "Solution could not be optimized";
 	

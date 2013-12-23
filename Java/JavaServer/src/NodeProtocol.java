@@ -81,7 +81,7 @@ public class NodeProtocol {
 				if(leastSquares==true){
 					s+= Protocol.leastSquares + "\n";
 					s+= Protocol.leastSquaresMsg + "\n";
-					s+= getString(lsb);
+					s+= getString(lsb) + "\n";
 				} else {
 					s+= Protocol.noLeastSquares + "\n";
 				}

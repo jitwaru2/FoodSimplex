@@ -128,6 +128,15 @@ public class Server {
 				    			String s = np.getOutput(Protocol.solution, solns[0][0], lsb, leastSquares, simplex);
 		    					out.write(s);
 		    					break;
+		    				} else {
+		    					System.out.println("Least squares failed and there is no feasible solution");
+		    					Matrix lsb = null;
+		    					if(leastSquares==true){
+		    						lsb = solns[3][0];
+		    					}
+				    			String s = np.getOutput(Protocol.deadSolution, solns[0][0], lsb, leastSquares, simplex);
+		    					out.write(s);
+		    					break;
 		    				}
 		    			}
 		    			
@@ -200,8 +209,7 @@ public class Server {
 		    					System.out.println(m.toString());
 		    				}
 		    			}
-		    			
-		    			System.out.println(lsb.toString());
+		
 		    			
 		    			System.out.println("Good solution");
 		    			String s = np.getOutput(Protocol.solution, x, lsb, leastSquares, simplex);
