@@ -34,7 +34,7 @@
 			<h3>2. Enter your desired macros</h3>
 			<h5>Same format as above</h5>
 			<div style="float:left" ng-repeat="prop in desiredMacros">
-				<input type="text" ng-model="prop.value"/> {{prop.name}}
+				{{prop.name}}:<input type="text" ng-model="prop.value"/>
 			</div>
 		</div>	
 
@@ -43,12 +43,14 @@
 		<div id="focusedMacros">
 			<h3>3. Select the macros you're concerned with</h3>
 			<h5>
-				<p>1. The solution will ignore macros you don't select, so if you're only concerned with protein and your solution ends up with 10,000 calories, don't blame me!</p>
+				<p>
+					1. The solution will ignore macros you don't select, so if you're only concerned with protein and your solution ends up with 10,000 calories, don't blame me!
+				</p>
 				<p>2. You must select at least 1 macro.</p>
 			</h5>
 
 			<div ng-repeat="prop in desiredMacros">
-				<input type="checkbox" ng-model="prop.concerned" ng-true-value="1" ng-false-value="0" ng-init="prop.concerned=0"/> {{prop.name}}
+				{{prop.name}}<input type="checkbox" ng-model="prop.concerned" ng-true-value="1" ng-false-value="0" ng-init="prop.concerned=0"/>
 			</div>
 		</div>
 
@@ -59,7 +61,7 @@
 	<br>
 
 	<div ng-model="backend">
-		<h2>Results</h2>
+		<h2>4. Results</h2>
 		<h5>
 			<p>The following numbers are the numbers of servings of each food you should eat (in the order that you input them) to achieve your macro goal.
 			</p>
@@ -70,6 +72,7 @@
 			<p>{{backend.leastSquaresMsg}}</p>
 			<!-- <p>{{backend.leastSquaresVectorB}}</p>  -->
 		</div>
+		<br>
 		<div ng-show="backend.hasSolution"> {{backend.solution}} </div>
 		<div>{{backend.msg}}<div><br>
 	</div>
