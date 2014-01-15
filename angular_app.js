@@ -129,7 +129,7 @@ app.controller('mainCtrl', function($scope, socket){
    */
 
   /* Send data to Java via Node.js */
-  $scope.sendData = function(){
+  $scope.sendData2 = function(){
     var foodstr = "";
     var concerns = {};
     var desiredMacrosList = "";
@@ -177,6 +177,10 @@ app.controller('mainCtrl', function($scope, socket){
     } else {
       socket.emit('sendData', dataObj);
     }
+  }
+
+  $scope.sendData = function(){
+
   }
 
   $scope.printData = function(data){
