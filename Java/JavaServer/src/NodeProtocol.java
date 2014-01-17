@@ -178,7 +178,10 @@ public class NodeProtocol {
 		return s;
 	}
 	
-	//good
+	/**
+	 * Sets the state of the NodeProtocol object to contain the data stored in the input data string
+	 * @param data
+	 */
 	public void setData(String data){
 		//clear all preexisting data
 		status = 0;
@@ -250,11 +253,18 @@ public class NodeProtocol {
 		dmlscan.close();
 	}
 	
-
+	/**
+	 * Calls the hasNext() method of this NodeProtocol object's NCR object
+	 * @return
+	 */
 	public boolean hasNextMatrixCombo(){
 		return ncr.hasNext();
 	}
 	
+	/**
+	 * Produces a Matrix system Ax=b only using the concerned macros in the next combination series
+	 * @return An array of matrices containing A and b in Ax=b, and c, the Matrix containing maximization values
+	 */
 	public Matrix[] extractNextCombo(){
 		currentCombo = ncr.next();
 		

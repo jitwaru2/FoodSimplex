@@ -73,6 +73,8 @@ public class Server {
 		    			
 		    			np.setData(msg);
 		    			String solutionMsg = "";
+		    			
+		    			/* The following while loop solves all 15 Matrix systems and concatenates them in String form to be outputted to Node.js */
 		    			while(np.hasNextMatrixCombo()){
 			    			try {
 			    				/* Extract matrices A, b, and objMax from user input */
@@ -232,6 +234,7 @@ public class Server {
 		    			System.out.println("Final solution message:");
 		    			System.out.println(solutionMsg);
 		    			
+		    			/* Write entire solution to Node.js */
 		    			out.write(solutionMsg);
 		    		}
 		    	}

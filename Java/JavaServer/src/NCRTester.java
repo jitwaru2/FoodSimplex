@@ -1,6 +1,11 @@
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Tests the correctness of NCR
+ * @author josh
+ *
+ */
 
 public class NCRTester {
 	public static void main(String[] args){

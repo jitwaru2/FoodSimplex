@@ -154,11 +154,7 @@ app.controller('mainCtrl', function($scope, socket){
 
   /* Data from backend */
   $scope.backend = {
-    currentSolution: 0,
-    0000: "default",
-    1001: "dog",
-    1111: "cat"
-
+    currentSolution: 1111
   };
 
   $scope.updateSolution = function (){

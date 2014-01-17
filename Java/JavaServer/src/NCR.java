@@ -43,6 +43,10 @@ public class NCR<T> {
 		
 	}
 	
+	/**
+	 * Produces the next combination in the series
+	 * @return A List<T> containing the elements in the next combination
+	 */
 	public List<T> next(){
 		if(hasNext==true){
 			System.out.println("***BEFORE CALL [NCR] next");
@@ -113,6 +117,9 @@ public class NCR<T> {
 		}
 	}
 	
+	/**
+	 * Helper method for next()
+	 */
 	private void resetToBase(){
 		//find number of markers after base
 		System.out.println("here is the base: " + base);
@@ -130,6 +137,10 @@ public class NCR<T> {
 		}
 	}
 	
+	/**
+	 * Helper method for next(). Gets a copy of the computed list to return
+	 * @return
+	 */
 	private List<T> getCompList(){
 		List<T> l = new ArrayList<T>();
 		for(int i=0; i<list.size(); i++){
@@ -140,10 +151,17 @@ public class NCR<T> {
 		return l;
 	}
 	
+	/**
+	 * Returns true if there is another combination in the series; false otherwise
+	 * @return
+	 */
 	public boolean hasNext(){
 		return hasNext;
 	}
 	
+	/**
+	 * Debugging method
+	 */
 	private void printIndices(){
 		System.out.print("[NCR] printIndices: ");
 		for(int i : indices){
