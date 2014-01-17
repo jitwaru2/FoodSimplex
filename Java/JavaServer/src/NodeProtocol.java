@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -6,6 +8,49 @@ import java.util.Scanner;
  *
  */
 public class NodeProtocol {
+	
+	private String data;
+	private ArrayList<Integer> combinations;
+	private List<Integer> currentCombo;
+	private NCR ncr;
+	
+	private int status;
+	private int macrosCount;
+	private int numFoods;
+	private ArrayList<ArrayList<Double>> foods;
+	private ArrayList<Double> desiredMacros;
+	
+	public String toString(){
+		String str = "NCR DATA:\n";
+		str += "status: " + status + "\n";
+		str += "macrosCount: " + macrosCount + "\n";
+		str += "numFoods: " + numFoods + "\n";
+		str += "foods:\n";
+		for(ArrayList<Double> f : foods){
+			for(Double d : f){
+				str += d + " ";
+			}
+			str += "[endfood]\n";
+		}
+		str += "desiredMacros: \n";
+		for(Double d : desiredMacros){
+			str += d + " ";
+		}
+		str += "\n";
+		
+		return str;
+	}
+	
+	//good
+	public NodeProtocol(){
+		currentCombo = null;
+		
+		status = 0;
+		numFoods = 0;
+		macrosCount = 0;
+		foods = new ArrayList<ArrayList<Double>>();
+		desiredMacros = new ArrayList<Double>();
+	}
 	
 	/**
 	 * Interprets a message header as a Protocol field
@@ -106,6 +151,113 @@ public class NodeProtocol {
 		return s;
 	}
 	
+	//good
+	public void setData(String data){
+		//clear all preexisting data
+		status = 0;
+		macrosCount = 0;
+		numFoods = 0;
+		foods.clear();
+		desiredMacros.clear();
+		
+		/* 
+		 * beginSystem
+		 * macrosCount
+		 * numFoods
+		 * foodList
+		 * desiredMacrosList
+		 * endSystem
+		 *  */
+		
+		//set data
+		this.data = data;
+		
+		//set status, number of supplies macros per food, and the number of total foods
+		Scanner scan = new Scanner(data);
+		status = Integer.parseInt(scan.nextLine().trim());
+		macrosCount = Integer.parseInt(scan.nextLine().trim());	//matrix rows
+		numFoods = Integer.parseInt(scan.nextLine().trim());	//matrix columns
+		
+		combinations = new ArrayList<Integer>();
+		for(int i=0; i<macrosCount; i++){
+			combinations.add(i);
+		}
+		
+		ncr = new NCR(combinations);
+		
+		System.out.println("status: " + status+"--macrosCount: " + macrosCount + "--numFoods: " + numFoods);
+		
+		//convert each string macro list into an ArrayList<Double> and store in foods
+		String flist = scan.nextLine().trim();
+		System.out.println("flist: " + flist);
+		flist = flist.replace(",", " ");
+		flist = flist.replace("|", "\n");
+		System.out.println("flist: " + flist);
+		
+		Scanner flistscan = new Scanner(flist);
+		for(int i=0; i<numFoods; i++){
+			String foodstr = flistscan.nextLine();
+			System.out.println("foodstr: " + foodstr);
+			Scanner fscan = new Scanner(foodstr);
+			
+			ArrayList<Double> food = new ArrayList<Double>();
+			food.add(fscan.nextDouble());
+			
+			for(int j=0; j<macrosCount; j++){
+				food.add(fscan.nextDouble());
+			}
+			fscan.close();
+			
+			foods.add(food);
+		}
+		flistscan.close();
+		
+		//set desired macro list
+		String dml = scan.nextLine();
+		dml = dml.replace("|", " ");
+		Scanner dmlscan = new Scanner(dml);
+		
+		for(int i=0; i<macrosCount; i++){
+			desiredMacros.add(dmlscan.nextDouble());
+		}
+		dmlscan.close();
+	}
+	
+
+	public boolean hasNextMatrixCombo(){
+		return ncr.hasNext();
+	}
+	
+	public Matrix[] extractNextCombo(){
+		currentCombo = ncr.next();
+		
+		System.out.println("Current combo size: " + currentCombo.size());
+		
+		/* A in Ax=b */
+		Matrix A = new Matrix(currentCombo.size(), numFoods);
+
+		/* b in Ax=b */
+		Matrix b = new Matrix(new double[currentCombo.size()]);
+		
+		/* Foods to maximize, used for building the objective function in the simplex method */
+		Matrix c = new Matrix(new double[numFoods]);
+		
+		for(int i=0; i<foods.size(); i++){
+			
+			c.matrix[i][0] = foods.get(i).get(0);
+			
+			for(int j=0; j<currentCombo.size(); j++){
+				A.matrix[j][i] = foods.get(i).get(currentCombo.get(j)+1);
+			}
+		}
+		
+		for(int i=0; i<currentCombo.size(); i++){
+			b.matrix[i][0] = desiredMacros.get(currentCombo.get(i));
+		}
+		
+		return new Matrix[] {A, b, c};
+	}
+	
 	/**
 	 * Extracts, from the inputted data, the matrices A and b (as in Ax=b) as well as a matrix c which foods to maximize
 	 * @param data Data from Node.js
@@ -122,9 +274,9 @@ public class NodeProtocol {
 		 *  */
 		
 		Scanner scan = new Scanner(data);
-		int status = Integer.parseInt(scan.nextLine().trim());
-		int macrosCount = Integer.parseInt(scan.nextLine().trim());	//matrix rows
-		int numFoods = Integer.parseInt(scan.nextLine().trim());	//matrix columns
+		status = Integer.parseInt(scan.nextLine().trim());
+		macrosCount = Integer.parseInt(scan.nextLine().trim());	//matrix rows
+		numFoods = Integer.parseInt(scan.nextLine().trim());	//matrix columns
 		
 		System.out.println("status: " + status+"--macrosCount: " + macrosCount + "--numFoods: " + numFoods);
 		
@@ -174,5 +326,4 @@ public class NodeProtocol {
 		
 		return new Matrix[] {A, b, c};
 	}
-
 }
