@@ -7,6 +7,7 @@
 public class Protocol {
 	final static int beginSystem = 111;
 	final static int endSystem = 112;
+	final static int endTransmission = 113;
 	final static int endMsg = 99;
 	final static int solution = 222;
 	final static int noSolution = 223;

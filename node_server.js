@@ -1,5 +1,5 @@
 var frontendPort = 5005;
-var backendPort = 8013;
+var backendPort = 8015;
 var app = require('express')();
 var server = require('http').createServer(app);
 var io = require('socket.io').listen(server);
@@ -68,56 +68,69 @@ backend.on('data', function(data){
 
 	var dataArr = jstring.split("\n");
 	var dataObj = {};
+	dataObj.solns = {};
 
 	console.log(dataArr);
 
 	var i = 0;
-	switch(dataArr[i++]){
-		case Protocol.solution:
-			dataObj.hasSolution = true;
-			dataObj.deadSolution = false;
-			if(dataArr[i++]==Protocol.leastSquares){
-				dataObj.leastSquares = true;
-				dataObj.leastSquaresMsg = dataArr[i++];
-				dataObj.leastSquaresVectorB = dataArr[i++];
-			} else {
-				dataObj.leastSquares = false;
-				dataObj.leastSquaresMsg = null;
-				dataObj.leastSquaresVectorB = null;
-			}
-			dataObj.solution = dataArr[i++];
-			if(dataArr[i++]==Protocol.simplex){
-				dataObj.simplex = true;
-			} else {
-				dataObj.simplex = false;
-			}
-			dataObj.msg = dataArr[i++];
-			break;
-		case Protocol.noSolution:
-			dataObj.hasSolution = false;
-			dataObj.deadSolution = false;
-			dataObj.leastSquares = false;
-			dataObj.leastSquaresMsg = null;
-			dataObj.leastSquaresVectorB = null;
-			dataObj.solution = dataArr[i++];
-			dataObj.msg = dataArr[i++];
-			break;
-		case Protocol.deadSolution:
-			dataObj.hasSolution = true;
-			dataObj.deadSolution = true;
-			if(dataArr[i++]==Protocol.leastSquares){
-				dataObj.leastSquares = true;
-				dataObj.leastSquaresMsg = dataArr[i++];
-				dataObj.leastSquaresVectorB = dataArr[i++];
-			} else {
-				dataObj.leastSquares = false;
-				dataObj.leastSquaresVectorB = null;
-			}
-			dataObj.solution = dataArr[i++];
-			dataObj.msg = dataArr[i++];
-			break;
+	var end = false;
+	while(end==false){
+		switch(dataArr[i++]){
 
+			case Protocol.solution:
+				var hash = dataArr[i++];
+				dataObj.solns[hash] = {};
+				dataObj.solns[hash].hasSolution = true;
+				dataObj.solns[hash].deadSolution = false;
+				if(dataArr[i++]==Protocol.leastSquares){
+					dataObj.solns[hash].leastSquares = true;
+					dataObj.solns[hash].leastSquaresMsg = dataArr[i++];
+					dataObj.solns[hash].leastSquaresVectorB = dataArr[i++];
+				} else {
+					dataObj.solns[hash].leastSquares = false;
+					dataObj.solns[hash].leastSquaresMsg = null;
+					dataObj.solns[hash].leastSquaresVectorB = null;
+				}
+				dataObj.solns[hash].solution = dataArr[i++];
+				if(dataArr[i++]==Protocol.simplex){
+					dataObj.solns[hash].simplex = true;
+				} else {
+					dataObj.solns[hash].simplex = false;
+				}
+				dataObj.solns[hash].msg = dataArr[i++];
+				break;
+			case Protocol.noSolution:
+				var hash = dataArr[i++];
+				dataObj.solns[hash] = {};
+				dataObj.solns[hash].hasSolution = false;
+				dataObj.solns[hash].deadSolution = false;
+				dataObj.solns[hash].leastSquares = false;
+				dataObj.solns[hash].leastSquaresMsg = null;
+				dataObj.solns[hash].leastSquaresVectorB = null;
+				dataObj.solns[hash].solution = dataArr[i++];
+				dataObj.solns[hash].msg = dataArr[i++];
+				break;
+			case Protocol.deadSolution:
+				var hash = dataArr[i++];
+				dataObj.solns[hash] = {};
+				dataObj.solns[hash].hasSolution = true;
+				dataObj.solns[hash].deadSolution = true;
+				if(dataArr[i++]==Protocol.leastSquares){
+					dataObj.solns[hash].leastSquares = true;
+					dataObj.solns[hash].leastSquaresMsg = dataArr[i++];
+					dataObj.solns[hash].leastSquaresVectorB = dataArr[i++];
+				} else {
+					dataObj.solns[hash].leastSquares = false;
+					dataObj.solns[hash].leastSquaresVectorB = null;
+				}
+				dataObj.solns[hash].solution = dataArr[i++];
+				dataObj.solns[hash].msg = dataArr[i++];
+				break;
+			case Protocol.endTransmission:
+				end = true;
+		}
 	}
+
 
 	/* Send data to AngularJS */
 	frontendSocket.emit('javaData', dataObj);
@@ -127,6 +140,7 @@ backend.on('data', function(data){
 var Protocol = {
 	beginSystem: "111",
 	endSystem: "112",
+	endTransmission: "113",
 	endMsg: "99",
 	solution: "222",
 	noSolution: "223",

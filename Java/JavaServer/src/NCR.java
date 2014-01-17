@@ -31,6 +31,18 @@ public class NCR<T> {
 		first = true;
 	}
 	
+	public void reset(){
+		indices = new int[list.size()];
+		
+		indices[0] = 1;
+		base = 0;
+		current = 0;
+		pointers = 1;
+		hasNext = true;
+		first = true;
+		
+	}
+	
 	public List<T> next(){
 		if(hasNext==true){
 			System.out.println("***BEFORE CALL [NCR] next");

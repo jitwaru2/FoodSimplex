@@ -20,6 +20,15 @@ public class NodeProtocol {
 	private ArrayList<ArrayList<Double>> foods;
 	private ArrayList<Double> desiredMacros;
 	
+	public ArrayList<Integer> getCurrentCombo(){
+		ArrayList<Integer> copy = new ArrayList<Integer>();
+		for(Integer i : currentCombo){
+			copy.add(i);
+		}
+		
+		return copy;
+	}
+	
 	public String toString(){
 		String str = "NCR DATA:\n";
 		str += "status: " + status + "\n";
@@ -74,21 +83,36 @@ public class NodeProtocol {
 	 * @param simplex
 	 * @return
 	 */
-	public String getOutput(int protocol, Matrix soln, Matrix lsb, boolean leastSquares, boolean simplex){
+	public String getOutput(int protocol, Matrix soln, Matrix lsb, boolean leastSquares, boolean simplex, List<Integer> curCombo){
 		String s = "";
+		
+		int[] inds = new int[macrosCount];
+		for(Integer i : curCombo){
+			inds[i] = 1;
+		}
+		
+		String indsString = "";
+		for(int i : inds){
+			indsString += i;
+		}
+		
+		
 		switch(protocol){
 			/*
 			 * Protocol.noSolution
+			 * -Focused macros
 			 * Protocol.noSolutionMsg
 			 * Protocol.noFoodComboMsg
 			 * */
 			case Protocol.noSolution: {
 				s+= Protocol.noSolution + "\n";
+				s+= indsString + "\n";
 				s+= Protocol.nullSolutionMsg + "\n";
 				s+= Protocol.noFoodComboMsg + "\n";
 			} break;
 			/*
 			 * Protocol.solution
+			 * -Focused macros
 			 * Protocol.leastSquares/noLeastSquares
 			 * (Protocol.leastSquaresMsg)
 			 * (least squares b vector)
@@ -98,6 +122,7 @@ public class NodeProtocol {
 			 * */
 			case Protocol.solution: {
 				s+= Protocol.solution + "\n";
+				s+= indsString + "\n";
 				if(leastSquares==true){
 					s+= Protocol.leastSquares + "\n";
 					s+= Protocol.leastSquaresMsg + "\n";
@@ -116,6 +141,7 @@ public class NodeProtocol {
 			} break;
 			/*
 			 * Protocol.deadSolution
+			 * -Focused macros
 			 * Protocol.leastSquares/noLeastSquares
 			 * (least squares b vector)
 			 * solution vector
@@ -123,6 +149,7 @@ public class NodeProtocol {
 			 * */
 			case Protocol.deadSolution: {
 				s+= Protocol.deadSolution + "\n";
+				s+= indsString + "\n";
 				if(leastSquares==true){
 					s+= Protocol.leastSquares + "\n";
 					s+= Protocol.leastSquaresMsg + "\n";

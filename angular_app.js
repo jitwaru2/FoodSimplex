@@ -101,56 +101,6 @@ app.controller('mainCtrl', function($scope, socket){
    */
 
   /* Send data to Java via Node.js */
-  $scope.sendData2 = function(){
-    var foodstr = "";
-    var concerns = {};
-    var desiredMacrosList = "";
-    var macroCount = 0;
-
-    for(var m in $scope.desiredMacros){
-      console.log(m);
-      if($scope.desiredMacros[m].concerned==1){
-        concerns[$scope.desiredMacros[m].name] = $scope.desiredMacros[m].value;
-        desiredMacrosList += $scope.desiredMacros[m].value + " ";
-        macroCount++;
-      }
-    }
-
-    console.log(concerns);
-
-    var atLeastOneMax = false;
-    for(var f in $scope.foods){
-      //make sure at least one food is selected to be maximized
-      if($scope.foods[f].maximize==1){
-        atLeastOneMax = true;
-      }
-
-      foodstr += $scope.foods[f].maximize + " "
-      for(var m in concerns){
-        console.log($scope.foods[f].macros[m].name);
-        foodstr += $scope.foods[f].macros[m].value + " "
-      }
-      foodstr += "|";
-    }
-
-    console.log(foodstr);
-
-    var dataObj = {
-      macroCount: macroCount.toString(),
-      numFoods: $scope.foodsMeta.numKeys.toString(),
-      foodList: foodstr,
-      desiredMacrosList: desiredMacrosList
-    }
-
-    console.log(dataObj);
-
-    if(macroCount==0 || $scope.foodsMeta.numKeys==0 || atLeastOneMax==false){
-      alert("Make sure you have:\n1. Added at least 1 food\n2. Selected to maximize at least 1 food\n3. Selected at least 1 macro");
-    } else {
-      socket.emit('sendData', dataObj);
-    }
-  }
-
   $scope.sendData = function(){
     var foodstr = "";
     var concerns = {};
@@ -234,12 +184,15 @@ app.controller('mainCtrl', function($scope, socket){
     console.log(data);
     $scope.backend = data;
     $scope.backend.currentSolution = 0;
+
+    $scope.updateSolution();
   });
 
 });
 
 /*
   hasSolution
+  focused macros
   deadSolution
   (leastSquares)
   (leastSquaresMsg)

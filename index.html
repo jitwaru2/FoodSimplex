@@ -37,17 +37,37 @@
 				{{prop.name}}:<input type="text" ng-model="prop.value"/>
 			</div>
 
-			<p><button ng-click="sendData()"><strong>Get Proportions (new)!</strong></button></p>
+			<br>
+			<p><button ng-click="sendData()"><strong>Get Proportions!</strong></button></p>
 
 		</div>	
 
 		<br>
+
+		<div ng-model="backend">
+			<h2>3. Results</h2>
+			<h5>
+				<p>The following numbers are the numbers of servings of each food you should eat (in the order that you input them) to achieve your macro goal.
+				</p>
+				<p>**Note: the more macros you're concerned with, the harder it is to find a solution! If there is no solution, try deselecting some macros, or just try another macro set.</p>
+			</h5>
+
+			<p>{{backend.solns[backend.currentSolution].solution}}</p>
+			<p>{{backend.solns[backend.currentSolution].leastSquaresMsg}}</p>
+			<p>{{backend.solns[backend.currentSolution].msg}}</p>
+
+			<div ng-repeat="soln in backend.solns" ng-show="{{false}}">
+				{{soln}}
+			</div>
+		</div>
+
+		<br>
 		<!-- Selective consideration of macro type -->
 		<div id="focusedMacros">
-			<h3>3. Select the macros you're concerned with</h3>
+			<h3>Select the macros you're concerned with</h3>
 			<h5>
 				<p>
-					1. The solution will ignore macros you don't select, so if you're only concerned with protein and your solution ends up with 10,000 calories, don't blame me!
+					1. You can choose only concern yourself with certain macros, which may yield a feasible result. The solution will ignore macros you don't select, so if you're only concerned with protein and your solution ends up with 10,000 calories, don't blame me!
 				</p>
 				<p>2. You must select at least 1 macro.</p>
 			</h5>
@@ -59,22 +79,6 @@
 			<p><button ng-click="updateSolution()">Update Solution</button></p>
 		</div>
 	</form>
-
-	<br>
-
-	<div ng-model="backend">
-		<h2>4. Results</h2>
-		<h5>
-			<p>The following numbers are the numbers of servings of each food you should eat (in the order that you input them) to achieve your macro goal.
-			</p>
-			<p>**Note: the more macros you're concerned with, the harder it is to find a solution! If there is no solution, try deselecting some macros, or just try another macro set.</p>
-		</h5>
-
-		<div ng-repeat="prop in desiredMacros"> {{prop.concerned}} </div>
-
-		<div ng-model="backend"> 
-			{{backend[backend.currentSolution]}} {{backend.currentSolution}}
-		</div>
 
 </body>
 
