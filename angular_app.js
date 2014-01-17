@@ -27,36 +27,31 @@ app.factory('socket', function ($rootScope) {
 
 /* Main controller */
 app.controller('mainCtrl', function($scope, socket){
-  $scope.backend = {
-    results: [],
-    flag: 0,
-    msg: ""
-  };
-
-  /* Contains the basic food macros */
-  $scope.desiredMacros = {
-    calories: {
+  function foodMacros(){
+    this.calories = {
       name: "calories",
       value: 0,
       concerned: 0
-    },
-    carbs: {
+    };
+    this.carbs = {
       name: "carbs",
       value: 0,
       concerned: 0
-    },
-        fat: {
+    };
+    this.fat = {
       name: "fat",
       value: 0,
       concerned: 0
-    },    
-    protein: {
+    };    
+    this.protein =  {
       name: "protein",
       value: 0,
       concerned: 0
-    }
+    };
   }
 
+  /* Contains the basic food macros */
+  $scope.desiredMacros = new foodMacros();
 
   /* List of all user-inputted food items, consisting of Food objects
     Values are keyed by $scope.foodCounter */
@@ -73,34 +68,11 @@ app.controller('mainCtrl', function($scope, socket){
   $scope.foodCounter = 1;
 
   /* Food object definition */
-  var Food = function(id){
+  function Food(id){
     this.id = id;
     this.maximize = 0;
     this.macrosString = ""; 
     this.macros = new foodMacros();
-  }
-
-  var foodMacros = function(){
-    this.calories = {
-      name: "calories",
-      value: 0,
-      concerned: 0
-    };
-    this.protein = {
-      name: "protein",
-      value: 0,
-      concerned: 0
-    };
-    this.fat = {
-      name: "fat",
-      value: 0,
-      concerned: 0
-    };
-    this.carbs = {
-      name: "carbs",
-      value: 0,
-      concerned: 0
-    }
   }
 
   /* Add a new food item to foods */
@@ -180,11 +152,77 @@ app.controller('mainCtrl', function($scope, socket){
   }
 
   $scope.sendData = function(){
+    var foodstr = "";
+    var concerns = {};
+    var desiredMacrosList = "";
+    var macroCount = 0;
 
+    for(var m in $scope.desiredMacros){
+      console.log("dms:" + m);
+      concerns[$scope.desiredMacros[m].name] = $scope.desiredMacros[m].value;
+      desiredMacrosList += $scope.desiredMacros[m].value + " ";
+      macroCount++;
+    }
+
+    var atLeastOneMax = false;
+    for(var f in $scope.foods){
+      //make sure at least one food is selected to be maximized
+      if($scope.foods[f].maximize==1){
+        atLeastOneMax = true;
+      }
+
+      foodstr += $scope.foods[f].maximize + " "
+      for(var m in concerns){
+        console.log("fm: "+ $scope.foods[f].macros[m].name);
+        foodstr += $scope.foods[f].macros[m].value + " "
+      }
+      console.log("|");
+      foodstr += "|";
+    }
+
+    console.log(foodstr);
+
+    var dataObj = {
+      macroCount: macroCount.toString(),
+      numFoods: $scope.foodsMeta.numKeys.toString(),
+      foodList: foodstr,
+      desiredMacrosList: desiredMacrosList
+    }
+
+    console.log(dataObj);
+
+    if(macroCount==0 || $scope.foodsMeta.numKeys==0 || atLeastOneMax==false){
+      alert("Make sure you have:\n1. Added at least 1 food\n2. Selected to maximize at least 1 food\n3. Selected at least 1 macro");
+    } else {
+      socket.emit('sendData', dataObj);
+    }
   }
 
   $scope.printData = function(data){
     console.log(data);
+  }
+
+  /* Data from backend */
+  $scope.backend = {
+    currentSolution: 0,
+    0000: "default",
+    1001: "dog",
+    1111: "cat"
+
+  };
+
+  $scope.updateSolution = function (){
+    console.log("updateSolution");
+
+    var hashStr = "";
+    for(var prop in $scope.desiredMacros){
+      console.log(prop);
+      hashStr += $scope.desiredMacros[prop].concerned + "";
+    }
+
+    console.log('-'+hashStr+"-");
+;
+    $scope.backend.currentSolution = hashStr;
   }
 
   /** Socket events **/
@@ -193,16 +231,11 @@ app.controller('mainCtrl', function($scope, socket){
   });
 
   socket.on('javaData', function(data){
-    // console.log("Got data from java:");
-    // console.log(data);
-    // var d = data.split("\n");
-    // $scope.backend.results = d[0].split(" ");
-    // $scope.backend.msg = d[1];
-
     console.log(data);
-
     $scope.backend = data;
+    $scope.backend.currentSolution = 0;
   });
+
 });
 
 /*

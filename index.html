@@ -36,6 +36,9 @@
 			<div style="float:left" ng-repeat="prop in desiredMacros">
 				{{prop.name}}:<input type="text" ng-model="prop.value"/>
 			</div>
+
+			<p><button ng-click="sendData()"><strong>Get Proportions (new)!</strong></button></p>
+
 		</div>	
 
 		<br>
@@ -52,10 +55,9 @@
 			<div ng-repeat="prop in desiredMacros">
 				{{prop.name}}<input type="checkbox" ng-model="prop.concerned" ng-true-value="1" ng-false-value="0" ng-init="prop.concerned=0"/>
 			</div>
-		</div>
 
-		<p><button ng-click="sendData2()"><strong>Get Proportions!</strong></button></p>
-		<p><button ng-click="test()">test</button></p>
+			<p><button ng-click="updateSolution()">Update Solution</button></p>
+		</div>
 	</form>
 
 	<br>
@@ -67,15 +69,13 @@
 			</p>
 			<p>**Note: the more macros you're concerned with, the harder it is to find a solution! If there is no solution, try deselecting some macros, or just try another macro set.</p>
 		</h5>
-		<!-- <div ng-repeat="result in backend.results">{{result}}</div><br> -->
-		<div ng-show="backend.leastSquares">
-			<p>{{backend.leastSquaresMsg}}</p>
-			<!-- <p>{{backend.leastSquaresVectorB}}</p>  -->
+
+		<div ng-repeat="prop in desiredMacros"> {{prop.concerned}} </div>
+
+		<div ng-model="backend"> 
+			{{backend[backend.currentSolution]}} {{backend.currentSolution}}
 		</div>
-		<br>
-		<div ng-show="backend.hasSolution"> {{backend.solution}} </div>
-		<div>{{backend.msg}}<div><br>
-	</div>
+
 </body>
 
 </html>
