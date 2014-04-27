@@ -11,4 +11,4 @@ put the macronutrient values for 1 serving each of tostitos, jellybeans, and chi
 
 In a nut shell, the Food simplex treats the inputted values as a system of linear equations and attempts to solve for a solution vector by means of Gauss Jordan elimination, projections, and the simplex algorithm.
 
-Full specifications are in the writeup pdf.
+Full specifications are in the foodsimplex pdf.
