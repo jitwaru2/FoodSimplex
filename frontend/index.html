@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html data-ng-app="app">
+<head>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.0/angular.min.js"></script>
+	<script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
+	<script src="/angular_app.js"></script>
+</head>
+
+<body data-ng-controller="mainCtrl">
+	<form>
+
+		<!-- Food input -->
+		<div id="foodInput">
+			<h3>1. Enter the macros for one serving of a food:</h3>
+			<h5>
+				<p>1. Use the format: 'calories' 'protein' 'fat' 'carbs' without the quotes</p>
+				<p>2. You must select at least 1 macro.</p>
+			</h5>
+			<button ng-click="addFood()">Add food</button>
+			<div ng-repeat="food in foods">
+				<input style="float:left" type="checkbox" ng-model="food.maximize" ng-true-value="1" ng-false-value="0" ng-init="food.maximize=0"/>
+
+				<div style="float:left" ng-repeat="prop in food.macros">
+					<input type="text" ng-model="prop.value"/> {{prop.name}}
+				</div>
+
+				<button ng-click="removeFood(food.id)">x</button> {{food.id}}
+			</div>
+		</div>
+
+		<!-- Desired Macros input -->
+		<div id="desiredMacrosInput">
+			<h3>2. Enter your desired macros</h3>
+			<h5>Same format as above</h5>
+			<div style="float:left" ng-repeat="prop in desiredMacros">
+				{{prop.name}}:<input type="text" ng-model="prop.value"/>
+			</div>
+
+			<br>
+			<p><button ng-click="sendData()"><strong>Get Proportions!</strong></button></p>
+
+		</div>	
+
+		<br>
+
+		<div ng-model="backend">
+			<h2>3. Results</h2>
+			<h5>
+				<p>The following numbers are the numbers of servings of each food you should eat (in the order that you input them) to achieve your macro goal.
+				</p>
+				<p>**Note: the more macros you're concerned with, the harder it is to find a solution! If there is no solution, try deselecting some macros, or just try another macro set.</p>
+			</h5>
+
+			<p>{{backend.solns[backend.currentSolution].solution}}</p>
+			<p>{{backend.solns[backend.currentSolution].leastSquaresMsg}}</p>
+			<p>{{backend.solns[backend.currentSolution].msg}}</p>
+
+			<div ng-repeat="soln in backend.solns" ng-show="{{false}}">
+				{{soln}}
+			</div>
+		</div>
+
+		<br>
+		<!-- Selective consideration of macro type -->
+		<div id="focusedMacros">
+			<h3>Select the macros you're concerned with</h3>
+			<h5>
+				<p>
+					1. You can choose only concern yourself with certain macros, which may yield a feasible result. The solution will ignore macros you don't select, so if you're only concerned with protein and your solution ends up with 10,000 calories, don't blame me!
+				</p>
+				<p>2. You must select at least 1 macro.</p>
+			</h5>
+
+			<div ng-repeat="prop in desiredMacros">
+				{{prop.name}}<input type="checkbox" ng-model="prop.concerned" ng-true-value="1" ng-false-value="0" ng-init="prop.concerned=0"/>
+			</div>
+
+			<p><button ng-click="updateSolution()">Update Solution</button></p>
+		</div>
+	</form>
+
+</body>
+
+</html>
