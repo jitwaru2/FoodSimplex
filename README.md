@@ -1,3 +1,11 @@
+(Project Renovation TODOs)
+====================
+* restructure project
+* refactor like everything
+* replace node with tomcat
+* write tests
+* provide deployment instructions
+
 FoodSimplex
 ===========
 
